@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget Bouncer</title>
+<meta name="description" content="APM Lab: what default per-user spend cap should an AI gateway set when every business user gets model access? A Monte Carlo mixture model by Shriya Shekatkar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Patrick+Hand&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* hero: saffron book-cover pin */
+  --saffron:#E8643A; --saffron-deep:#C94B22; --cream:#F5EAD6; --ink:#141010; --sky:#7FB2DE; --gold:#E9B949;
+  /* cards: doodle pin */
+  --cobalt:#2456A6; --tomato:#C7310F; --peach:#F6C3A3; --leaf:#2F7D3A; --blossom:#F2A7C3;
+  /* stickers: oval sticker pin */
+  --powder:#8FC4D6; --parchment:#F4E6BE; --cocoa:#4A3326;
+  /* sim room: career collage pin */
+  --night:#0D1117; --panel:#161B22; --line:#30363D; --g1:#0E4429; --g2:#006D32; --g3:#26A641; --g4:#39D353; --neon:#A371F7; --snow:#E6EDF3; --mute:#9DA7B3;
+  --paper:#FFF8EE;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,sans-serif;line-height:1.55;overflow-x:hidden}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:"Bricolage Grotesque",Inter,sans-serif;line-height:1.05;margin:0}
+.hand{font-family:"Patrick Hand",cursive}
+.grain{position:relative;isolation:isolate}
+.grain::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.18;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .8 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.grain>*{position:relative;z-index:1}
+
+/* ---------- HERO (saffron cover) ---------- */
+.hero{background:var(--saffron);border-bottom:6px solid var(--ink);overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;padding-top:44px;padding-bottom:48px}
+.kicker{display:inline-block;background:var(--ink);color:var(--cream);font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+.hero h1{font-size:clamp(40px,6.6vw,82px);font-weight:800;letter-spacing:-.02em;margin:18px 0 14px}
+.hero h1 em{font-style:normal;background:var(--cream);padding:0 .12em;border-radius:10px;box-shadow:5px 5px 0 var(--ink)}
+.hero .launch{font-size:16px;max-width:560px;margin:0 0 14px}
+.hero .launch a{font-weight:700}
+.byline{font-family:"Patrick Hand",cursive;font-size:22px}
+.byline small{display:block;font-family:Inter;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.hero-art svg{width:100%;height:auto;display:block}
+.blink{transform-origin:center;animation:blink 6s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.needle{transform-origin:200px 250px;animation:sway 4s ease-in-out infinite alternate}
+@keyframes sway{from{transform:rotate(-38deg)}to{transform:rotate(22deg)}}
+
+/* ---------- section headings ---------- */
+section{padding:56px 0}
+.sec-h{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.sec-h .num{font-family:"Patrick Hand";font-size:20px;background:var(--cobalt);color:#fff;border:3px solid var(--ink);border-radius:50% 46% 52% 44%;width:46px;height:46px;display:grid;place-items:center;flex:none}
+.sec-h h2{font-size:clamp(28px,4vw,44px)}
+.sec-h p{margin:0;color:#4a3f38;flex-basis:100%}
+
+/* ---------- doodle cards (pin 2) ---------- */
+.board{columns:3 260px;column-gap:18px}
+.card{break-inside:avoid;margin:0 0 18px;background:#fff;border:3px solid var(--ink);border-radius:22px 26px 20px 28px/26px 20px 28px 22px;padding:18px 18px 16px;box-shadow:4px 5px 0 var(--ink)}
+.card h3{font-family:"Patrick Hand",cursive;font-size:24px;font-weight:400;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.card.blue{background:var(--cobalt);color:#fff}
+.card.peach{background:var(--peach)}
+.card.tomato{background:var(--tomato);color:#fff}
+.card.tomato a{color:#fff}
+.card ul{margin:6px 0 0;padding-left:18px}
+.card li{margin:4px 0}
+.card .pin-cap{display:block;margin-top:10px;font-size:12px;font-weight:600;opacity:.85}
+.guard{display:flex;justify-content:space-between;gap:10px;border-top:2px dashed currentColor;padding:7px 0;font-size:15px}
+.guard:first-of-type{border-top:0}
+.guard b{white-space:nowrap}
+
+/* ---------- buttons/sliders ---------- */
+.btn{font-family:"Patrick Hand",cursive;font-size:20px;border:3px solid var(--ink);border-radius:18px 22px 16px 24px;padding:7px 18px;background:var(--leaf);color:#fff;cursor:pointer;box-shadow:3px 4px 0 var(--ink);transition:transform .12s}
+.btn:hover{transform:translate(-1px,-2px)}
+.btn:active{transform:translate(2px,3px);box-shadow:1px 1px 0 var(--ink)}
+.btn.alt{background:var(--blossom);color:var(--ink)}
+.btn:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+
+/* ---------- sim room (pin 4) ---------- */
+.simroom{background:var(--night);color:var(--snow);border-top:6px solid var(--ink);border-bottom:6px solid var(--ink)}
+.simroom .sec-h p{color:var(--mute)}
+.simroom .sec-h .num{background:var(--neon);color:var(--night);border-color:var(--snow)}
+.collage{display:grid;grid-template-columns:300px 1fr;gap:14px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.tile h3{font-family:Inter;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-bottom:10px}
+.ctrl{margin-bottom:14px}
+.ctrl label{display:flex;justify-content:space-between;font-size:14px;gap:8px}
+.ctrl output{font-family:"JetBrains Mono",monospace;color:var(--g4);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--g4);margin:6px 0 0}
+input[type=number]{width:100%;background:var(--night);color:var(--snow);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-family:"JetBrains Mono",monospace}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.right{display:grid;gap:14px;min-width:0}
+canvas{display:block;width:100%;border-radius:6px;background:#0A0D12}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mute);margin-top:8px;align-items:center}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+.monthtag{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--g4)}
+.scan{width:100%;border-collapse:collapse;font-family:"JetBrains Mono",monospace;font-size:12px}
+.scan th,.scan td{padding:5px 6px;text-align:right;border-bottom:1px solid var(--line)}
+.scan th:first-child,.scan td:first-child{text-align:left}
+.scan tr.pick td{background:rgba(163,113,247,.18);color:#fff}
+.ok{color:var(--g4)} .bad{color:#FF7B72}
+.scanwrap{overflow-x:auto}
+
+/* ---------- stickers (pin 3) ---------- */
+.stickers{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:6px}
+.sticker{position:relative;background:var(--powder);border-radius:50%;aspect-ratio:1.25/1;display:grid;place-items:center;text-align:center;
+  box-shadow:0 0 0 5px #fff,0 0 0 7px rgba(0,0,0,.25),0 8px 18px rgba(0,0,0,.45);color:var(--cocoa);padding:8px;min-width:0}
+.sticker .inner{background:var(--parchment);border:3px solid var(--cocoa);border-radius:50%;width:88%;height:80%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px}
+.sticker .ribbon{position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(-3deg);background:var(--powder);border:3px solid var(--cocoa);border-radius:40px/14px;padding:1px 10px;font-family:"Bricolage Grotesque";font-weight:800;font-size:11px;white-space:nowrap;letter-spacing:.02em}
+.sticker .val{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(18px,2.2vw,26px);line-height:1}
+.sticker .sub{font-size:11px;font-weight:600;margin-top:3px}
+.sticker .stamp{position:absolute;bottom:-8px;right:4px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;border:3px solid var(--cocoa);background:#fff;font-size:15px}
+.stamp.pass{background:#BDE8C3}.stamp.fail{background:#FFC2B8}
+.sticker.pop{animation:pop .45s ease}
+@keyframes pop{0%{transform:scale(.92) rotate(-2deg)}60%{transform:scale(1.05) rotate(1deg)}100%{transform:none}}
+
+/* ---------- memo ---------- */
+.memo{background:var(--cream);border:3px solid var(--ink);border-radius:8px;padding:26px;box-shadow:8px 8px 0 var(--saffron),8px 8px 0 3px var(--ink);max-width:860px}
+.memo .stamp-dec{display:inline-block;font-family:"Bricolage Grotesque";font-weight:800;font-size:20px;border:3px solid var(--ink);padding:4px 14px;border-radius:10px;transform:rotate(-2deg);margin-bottom:12px}
+.memo .stamp-dec.go{background:#BDE8C3}.memo .stamp-dec.hold{background:var(--gold)}
+.memo dl{display:grid;grid-template-columns:150px 1fr;gap:10px 18px;margin:0}
+.memo dt{font-family:"Patrick Hand";font-size:20px;text-transform:uppercase}
+.memo dd{margin:0}
+.vp{margin-top:18px;background:var(--cobalt);color:#fff;border:3px solid var(--ink);border-radius:26px 30px 24px 32px;padding:14px 18px;font-size:17px;position:relative}
+.vp::after{content:"";position:absolute;left:46px;bottom:-18px;border:9px solid transparent;border-top:12px solid var(--ink)}
+.vp b{font-family:"Patrick Hand";font-weight:400;font-size:20px;display:block}
+
+/* ---------- math + code ---------- */
+.math{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.math>*{min-width:0;margin:0}
+.formula{font-family:"JetBrains Mono",monospace;background:var(--parchment);border:2px solid var(--cocoa);border-radius:12px;padding:12px;font-size:14px;overflow-x:auto;white-space:pre}
+pre.code{background:var(--night);color:var(--snow);border-radius:12px;border:3px solid var(--ink);padding:16px;overflow-x:auto;font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.5;margin:0}
+.code .k{color:#FF7B72}.code .s{color:#A5D6FF}.code .c{color:#8B949E}.code .f{color:#D2A8FF}
+.codegrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.codegrid>div{min-width:0}
+.codegrid h3{font-family:"Patrick Hand";font-weight:400;font-size:22px;margin-bottom:8px}
+
+/* ---------- footer ---------- */
+footer{background:var(--ink);color:var(--cream);padding:30px 0 34px}
+footer p{margin:6px 0}
+footer .disc{font-weight:600}
+footer .credits{font-size:11px;color:#B9AFA3}
+footer a{color:var(--gold)}
+footer .credits a{color:#C9BFB2}
+
+@media (max-width:880px){
+  .hero .wrap{grid-template-columns:1fr}
+  .hero-art{max-width:340px;margin:0 auto}
+  .collage{grid-template-columns:1fr}
+  .stickers{grid-template-columns:repeat(2,1fr);gap:22px 18px}
+  .math,.codegrid{grid-template-columns:1fr}
+  .stickers .sticker:last-child{grid-column:1/-1;width:56%;justify-self:center}
+  .memo dl{grid-template-columns:1fr;gap:2px}
+  .memo dd{margin-bottom:10px}
+}
+@media (max-width:420px){
+  .wrap{padding:0 16px}
+  .memo{padding:18px;box-shadow:5px 5px 0 var(--saffron),5px 5px 0 3px var(--ink)}
+  section{padding:42px 0}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- 1. POSTER HERO -->
+<header class="hero grain">
+  <div class="wrap">
+    <div>
+      <span class="kicker">APM Lab · decision prototype</span>
+      <h1>I set the guardrail <em>before</em> the bill sets it for me.</h1>
+      <p class="launch">Mirrors: <a href="https://docs.databricks.com/aws/en/release-notes/product/2026/october" target="_blank" rel="noopener">Consumer access to query Unity Gateway services went GA (Databricks release notes, Oct 15, 2026)</a>. Business users with consumer access can now call AI models without an admin turning on a preview, and the notes say traffic may rise.</p>
+      <p class="byline">Shriya Shekatkar<small>UCLA · Stats 102C Monte Carlo Methods</small></p>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 400 360">
+        <defs>
+          <pattern id="dots" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.6" fill="#141010" opacity=".28"/></pattern>
+        </defs>
+        <circle cx="200" cy="190" r="168" fill="url(#dots)"/>
+        <!-- two watchful brush eyes -->
+        <g class="blink">
+          <path d="M40 95 Q105 40 170 95 Q105 140 40 95Z" fill="#F5EAD6" stroke="#141010" stroke-width="7" stroke-linejoin="round"/>
+          <circle cx="112" cy="94" r="22" fill="#141010"/><circle cx="104" cy="86" r="6" fill="#F5EAD6"/>
+          <path d="M230 95 Q295 40 360 95 Q295 140 230 95Z" fill="#F5EAD6" stroke="#141010" stroke-width="7" stroke-linejoin="round"/>
+          <circle cx="288" cy="94" r="22" fill="#141010"/><circle cx="280" cy="86" r="6" fill="#F5EAD6"/>
+        </g>
+        <path d="M40 58 Q105 18 172 52" fill="none" stroke="#141010" stroke-width="9" stroke-linecap="round"/>
+        <path d="M228 52 Q295 18 360 58" fill="none" stroke="#141010" stroke-width="9" stroke-linecap="round"/>
+        <!-- spend meter -->
+        <path d="M70 250 A130 130 0 0 1 330 250" fill="none" stroke="#141010" stroke-width="30" stroke-linecap="round"/>
+        <path d="M70 250 A130 130 0 0 1 200 120" fill="none" stroke="#7FB2DE" stroke-width="18" stroke-linecap="round"/>
+        <path d="M200 120 A130 130 0 0 1 292 158" fill="none" stroke="#E9B949" stroke-width="18"/>
+        <path d="M292 158 A130 130 0 0 1 330 250" fill="none" stroke="#F5EAD6" stroke-width="18" stroke-linecap="round"/>
+        <g class="needle"><path d="M200 250 L200 140" stroke="#141010" stroke-width="9" stroke-linecap="round"/></g>
+        <circle cx="200" cy="250" r="20" fill="#141010"/><circle cx="200" cy="250" r="8" fill="#E9B949"/>
+        <text x="200" y="312" text-anchor="middle" font-family="Patrick Hand, cursive" font-size="30" fill="#141010">$ per user / month</text>
+        <text x="300" y="132" font-family="Patrick Hand, cursive" font-size="22" fill="#141010" transform="rotate(18 300 132)">cap</text>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- 2. THE DECISION -->
+<section>
+  <div class="wrap">
+    <div class="sec-h"><span class="num">01</span><h2>The decision</h2>
+      <p>Imagine I'm the PM for the AI gateway. Thousands of analysts and business users just got model access. What default <b>per-user monthly spend cap</b> should a new workspace come with?</p></div>
+    <div class="board">
+      <article class="card blue">
+        <h3>Customer problem</h3>
+        <p>A platform admin at a 2,000-person company wants everyone to try AI models. But she owns the bill. One busy agent builder can spend more than 500 casual users put together, and finance will ask her about any surprise at month end.</p>
+        <span class="pin-cap">📌 board: admins &amp; budgets</span>
+      </article>
+      <article class="card">
+        <h3>Proposed change</h3>
+        <p>Every workspace that turns on consumer access gets a <b>default per-user monthly cap</b> (one number, editable). When a user reaches it, they get a friendly "ask your admin" card instead of an error.</p>
+        <p>The question is which number to ship as the default.</p>
+      </article>
+      <article class="card peach">
+        <h3>Success metric</h3>
+        <p><b>Monthly active AI users per entitled user</b> (adoption), measured while the org's P90 monthly bill stays inside the admin's budget.</p>
+        <span class="pin-cap">📌 north star: people using it, not dollars spent</span>
+      </article>
+      <article class="card">
+        <h3>Guardrails</h3>
+        <div class="guard"><span>Users who hit the cap in a month</span><b>≤ 3%</b></div>
+        <div class="guard"><span>Power users (agent builders) capped</span><b>≤ 25%</b></div>
+        <div class="guard"><span>Chance monthly bill tops budget</span><b>≤ 10%</b></div>
+        <div class="guard"><span>Cap-related admin tickets</span><b>≤ 1 per 100 users</b></div>
+      </article>
+      <article class="card tomato">
+        <h3>Stakeholders</h3>
+        <ul>
+          <li>Workspace &amp; account admins (own the bill)</li>
+          <li>Business users and analysts (want answers)</li>
+          <li>Agent builders (heavy, spiky usage)</li>
+          <li>Finance / FinOps, Support, Gateway eng</li>
+          <li>Model partners (traffic forecasts)</li>
+        </ul>
+      </article>
+      <article class="card peach">
+        <h3>Why it's hard</h3>
+        <p>Usage isn't one bell curve. It's a <b>mixture</b> of very different people. Set the cap from the average and you'll block the builders you most want to keep. Set it from the max and the bill has no ceiling.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- 3. LIVE SIMULATION -->
+<section class="simroom" id="sim">
+  <div class="wrap">
+    <div class="sec-h"><span class="num">02</span><h2>Simulation room</h2>
+      <p>Each square is one user. Each frame is one simulated month. Users are drawn from a three-persona mixture, their spend is lognormal (built from Box-Muller normals), and the org bill is the sum (a convolution) of everyone's capped spend.</p></div>
+    <div class="collage">
+      <div class="tile">
+        <h3>Knobs</h3>
+        <div class="ctrl"><label for="cap">Default cap per user <output id="capO"></output></label><input id="cap" type="range" min="5" max="200" step="5" value="50"></div>
+        <div class="ctrl"><label for="users">Entitled users <output id="usersO"></output></label><input id="users" type="range" min="500" max="5000" step="500" value="2000"></div>
+        <div class="ctrl"><label for="power">Power-user share <output id="powerO"></output></label><input id="power" type="range" min="2" max="25" step="1" value="10"></div>
+        <div class="ctrl"><label for="price">Blended $ per 1M tokens <output id="priceO"></output></label><input id="price" type="range" min="1" max="20" step="0.5" value="6"></div>
+        <div class="ctrl"><label for="budget">Admin monthly budget <output id="budgetO"></output></label><input id="budget" type="range" min="2000" max="30000" step="500" value="10500"></div>
+        <div class="ctrl"><label for="seed">Random seed</label><input id="seed" type="number" value="2026" min="1" max="999999"></div>
+        <div class="btnrow"><button class="btn" id="run">Run 300 months</button><button class="btn alt" id="reseed">New seed</button></div>
+        <p style="font-size:12px;color:var(--mute);margin:12px 0 0">Personas: casual askers (median 40K tokens/mo), regular analysts (30%, median 400K), agent builders (median 4M). All numbers are simulated.</p>
+      </div>
+      <div class="right">
+        <div class="tile">
+          <h3>One month, every user <span class="monthtag" id="monthTag"></span></h3>
+          <canvas id="grid" width="800" height="260" aria-label="Grid of users colored by monthly spend; purple squares hit the cap"></canvas>
+          <div class="legend">
+            <span><i class="sw" style="background:#161B22;border:1px solid #30363D"></i>~$0</span>
+            <span><i class="sw" style="background:#0E4429"></i></span><span><i class="sw" style="background:#006D32"></i></span><span><i class="sw" style="background:#26A641"></i></span><span><i class="sw" style="background:#39D353"></i>more spend</span>
+            <span><i class="sw" style="background:#A371F7"></i>hit the cap</span>
+          </div>
+        </div>
+        <div class="tile">
+          <h3>Org bill across simulated months</h3>
+          <canvas id="hist" width="800" height="240" aria-label="Histogram of simulated monthly org bills with and without the cap, plus the budget line"></canvas>
+          <div class="legend">
+            <span><i class="sw" style="background:#39D353"></i>bill with cap</span>
+            <span><i class="sw" style="background:transparent;border:2px solid #A371F7"></i>bill with no cap</span>
+            <span><i class="sw" style="background:#E8643A"></i>admin budget</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stickers" id="stickers" aria-live="polite">
+      <div class="sticker" id="k1"><span class="ribbon">P90 BILL</span><div class="inner"><span class="val">–</span><span class="sub">with cap</span></div></div>
+      <div class="sticker" id="k2"><span class="ribbon">SPEND AVOIDED</span><div class="inner"><span class="val">–</span><span class="sub">vs no cap, avg month</span></div></div>
+      <div class="sticker" id="k3"><span class="ribbon">USERS CAPPED</span><div class="inner"><span class="val">–</span><span class="sub">guardrail ≤ 3%</span></div><span class="stamp">·</span></div>
+      <div class="sticker" id="k4"><span class="ribbon">BUILDERS CAPPED</span><div class="inner"><span class="val">–</span><span class="sub">guardrail ≤ 25%</span></div><span class="stamp">·</span></div>
+      <div class="sticker" id="k5"><span class="ribbon">OVER BUDGET</span><div class="inner"><span class="val">–</span><span class="sub">guardrail ≤ 10%</span></div><span class="stamp">·</span></div>
+    </div>
+
+    <div class="tile" style="margin-top:28px">
+      <h3>Cap sweep: same simulated users, every candidate default</h3>
+      <div class="scanwrap"><table class="scan" id="scan"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. DIRECTOR MEMO -->
+<section>
+  <div class="wrap">
+    <div class="sec-h"><span class="num">03</span><h2>Director memo</h2><p>Rewrites itself every time the simulation runs.</p></div>
+    <div class="memo" id="memo"></div>
+  </div>
+</section>
+
+<!-- 5. THE MATH -->
+<section style="padding-top:10px">
+  <div class="wrap">
+    <div class="sec-h"><span class="num">04</span><h2>The math, from my Monte Carlo course</h2>
+      <p>Chapter 5: composition. Build a hard distribution out of simple pieces you already know how to sample.</p></div>
+    <div class="math">
+      <article class="card">
+        <h3>1 · Mixture: pick a persona, then sample</h3>
+        <p>"Monthly spend of a random user" has no tidy formula. But it is easy to <b>describe as a two-step story</b>: first roll which kind of user this is (casual, regular, builder) using the persona weights, then draw that persona's spend. Doing the steps in that order gives exact draws from the messy combined distribution.</p>
+        <div class="formula">f(x) = Σ wₖ fₖ(x)
+1. pick k with prob wₖ
+2. draw x ~ fₖ</div>
+      </article>
+      <article class="card">
+        <h3>2 · Box-Muller: normals from two uniforms</h3>
+        <p>Every persona's spend is lognormal: exp of a normal. To get the normal, take two uniforms U₁, U₂, turn them into a random radius and a random angle, and read off the x-coordinate. Then the spend is median × e<sup>σZ</sup>, so a long right tail shows up on its own.</p>
+        <div class="formula">Z = √(−2 ln U₁) · cos(2π U₂)
+spend = median · exp(σ Z)</div>
+      </article>
+      <article class="card peach">
+        <h3>3 · Convolution: the bill is a sum</h3>
+        <p>The org bill is the sum of 2,000 capped spends. The exact distribution of that sum is a 2,000-fold convolution, which nobody wants to compute by hand. Simulating it is simple: draw everyone, cap, add, and repeat for 300 months. A shared "busy month" multiplier keeps months realistically correlated.</p>
+        <div class="formula">Bill_m = shock_m · Σᵢ min(spendᵢ, cap)</div>
+      </article>
+      <article class="card blue">
+        <h3>Why a PM should care</h3>
+        <p>The average user spends about <b>$5</b>, but the builder persona's tail pulls the bill around. A mixture makes the tension visible: one number has to protect the budget <i>and</i> keep the 10% of users who create most of the value. The sweep table shows the whole trade-off curve in one glance.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- 6. REAL DATA -->
+<section style="padding-top:10px">
+  <div class="wrap">
+    <div class="sec-h"><span class="num">05</span><h2>How I'd run it on real data</h2><p>Table names are illustrative. Fit the persona mixture from last quarter's usage, then replay the sweep.</p></div>
+    <div class="codegrid">
+      <div>
+        <h3>SQL: monthly spend per user</h3>
+<pre class="code"><span class="c">-- illustrative tables</span>
+<span class="k">WITH</span> monthly <span class="k">AS</span> (
+  <span class="k">SELECT</span> user_id,
+         <span class="f">date_trunc</span>(<span class="s">'MONTH'</span>, usage_date) <span class="k">AS</span> month,
+         <span class="f">SUM</span>(tokens_in + tokens_out) <span class="k">AS</span> tokens,
+         <span class="f">SUM</span>(list_cost_usd)          <span class="k">AS</span> spend
+  <span class="k">FROM</span>   ai_ops.gateway.request_log
+  <span class="k">WHERE</span>  entitlement = <span class="s">'consumer'</span>
+  <span class="k">GROUP BY</span> <span class="k">ALL</span>
+)
+<span class="k">SELECT</span> month,
+       <span class="f">percentile</span>(spend, <span class="k">array</span>(0.5, 0.9, 0.99)) <span class="k">AS</span> p50_p90_p99,
+       <span class="f">avg</span>(<span class="k">CASE WHEN</span> spend &gt;= 40 <span class="k">THEN</span> 1 <span class="k">ELSE</span> 0 <span class="k">END</span>) <span class="k">AS</span> share_would_hit_40
+<span class="k">FROM</span>   monthly
+<span class="k">GROUP BY</span> month <span class="k">ORDER BY</span> month;</pre>
+      </div>
+      <div>
+        <h3>Python: fit the mixture, sweep caps</h3>
+<pre class="code"><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.mixture <span class="k">import</span> GaussianMixture
+
+df = spark.table(<span class="s">"ai_ops.finops.user_month_spend"</span>).toPandas()
+logx = np.log(df.spend.clip(lower=0.01)).values.reshape(-1, 1)
+gm = GaussianMixture(3, random_state=7).fit(logx)   <span class="c"># 3 personas</span>
+
+rng = np.random.default_rng(2026)
+<span class="k">def</span> <span class="f">bills</span>(cap, users=2000, months=300):
+    k = rng.choice(3, size=users, p=gm.weights_)       <span class="c"># mixture</span>
+    mu = gm.means_.ravel()[k]; sd = np.sqrt(gm.covariances_.ravel()[k])
+    z = rng.standard_normal((months, users))
+    shock = np.exp(0.15 * rng.standard_normal((months, 1)))
+    spend = np.exp(mu + sd * z) * shock
+    <span class="k">return</span> np.minimum(spend, cap).sum(axis=1)       <span class="c"># convolution</span>
+
+<span class="k">for</span> cap <span class="k">in</span> [10, 25, 40, 60, 100]:
+    b = bills(cap); print(cap, np.percentile(b, 90).round())</pre>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- 7. FOOTER -->
+<footer>
+  <div class="wrap">
+    <p class="disc">Unofficial concept prototype by Shriya Shekatkar. All data is simulated. Not affiliated with any company.</p>
+    <p>Part of <a href="https://shriyashekatkar25-byte.github.io/apm-lab/">APM Lab, the gallery</a> · product decisions with Monte Carlo methods.</p>
+    <p class="credits">Design inspired by:
+      <a href="https://www.pinterest.com/pin/543246773814121440/" target="_blank" rel="noopener">saffron book-cover pin by Sivakumar Surampudi</a> ·
+      <a href="https://www.pinterest.com/pin/788200372329260114/" target="_blank" rel="noopener">"Don't be so hard on yourself" doodle by Simply_Flo</a> ·
+      <a href="https://www.pinterest.com/pin/395964992262896811/" target="_blank" rel="noopener">oval rabbit sticker saved by Arleth</a> ·
+      <a href="https://www.pinterest.com/pin/732116483227898155/" target="_blank" rel="noopener">"2026 Career" collage</a>.
+      All artwork redrawn in SVG/CSS/canvas; no pin images used.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---- seeded RNG (mulberry32) ----
+function rng(seed){let a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
+// Box-Muller (keeps the spare)
+function normalGen(u){let spare=null;return function(){if(spare!==null){const s=spare;spare=null;return s;}let u1=u();while(u1<=1e-12)u1=u();const u2=u();const r=Math.sqrt(-2*Math.log(u1));spare=r*Math.sin(2*Math.PI*u2);return r*Math.cos(2*Math.PI*u2);};}
+
+const MONTHS=300;
+const PERSONAS=[ // tokens/month median, sigma
+  {name:"casual",med:40e3,sig:0.9},
+  {name:"regular",med:400e3,sig:0.7},
+  {name:"builder",med:4e6,sig:1.0}
+];
+const CAPS=[10,15,20,25,30,40,50,60,75,100,150,200];
+let S=null; // simulation store
+
+function simulate(p){
+  const u=rng(p.seed), z=normalGen(u);
+  const N=p.users, w=[1-0.30-p.power/100,0.30,p.power/100];
+  // mixture step 1: assign persona via inverse CDF on cumulative weights
+  const persona=new Uint8Array(N);
+  for(let i=0;i<N;i++){const r=u();persona[i]=r<w[0]?0:(r<w[0]+w[1]?1:2);}
+  const spend=new Float32Array(MONTHS*N), shock=new Float32Array(MONTHS);
+  for(let m=0;m<MONTHS;m++){
+    shock[m]=Math.exp(0.15*z());
+    for(let i=0;i<N;i++){const pp=PERSONAS[persona[i]];
+      spend[m*N+i]=shock[m]*p.price*pp.med*Math.exp(pp.sig*z())/1e6;}
+  }
+  const nb=persona.reduce((a,b)=>a+(b===2?1:0),0);
+  const raw=new Float64Array(MONTHS);
+  for(let m=0;m<MONTHS;m++){let s=0;for(let i=0;i<N;i++)s+=spend[m*N+i];raw[m]=s;}
+  return {p,N,persona,spend,shock,nb,raw};
+}
+function evalCap(S,cap){
+  const {N,spend,persona,nb}=S;const bill=new Float64Array(MONTHS);let capped=0,bcap=0;
+  for(let m=0;m<MONTHS;m++){let s=0;for(let i=0;i<N;i++){const v=spend[m*N+i];if(v>=cap){s+=cap;capped++;if(persona[i]===2)bcap++;}else s+=v;}bill[m]=s;}
+  const sorted=Array.from(bill).sort((a,b)=>a-b);
+  const q=x=>sorted[Math.min(MONTHS-1,Math.floor(x*MONTHS))];
+  const over=bill.reduce((a,b)=>a+(b>S.p.budget?1:0),0)/MONTHS;
+  const mean=bill.reduce((a,b)=>a+b,0)/MONTHS;
+  const rawMean=S.raw.reduce((a,b)=>a+b,0)/MONTHS;
+  const capRate=capped/(MONTHS*N), bRate=nb?bcap/(MONTHS*nb):0;
+  return {cap,bill,p50:q(.5),p90:q(.9),mean,avoided:rawMean-mean,capRate,bRate,over,tickets:capRate*100*0.35,
+    g1:capRate<=0.03,g2:bRate<=0.25,g3:over<=0.10,g4:capRate*100*0.35<=1};
+}
+const fmt$=v=>v>=1e6?"$"+(v/1e6).toFixed(2)+"M":v>=1e4?"$"+(v/1e3).toFixed(1)+"K":"$"+Math.round(v).toLocaleString("en-US");
+const pct=v=>(v*100).toFixed(v<0.1?1:0)+"%";
+
+// ---- canvases ----
+function fitCanvas(c,h){const dpr=Math.min(2,window.devicePixelRatio||1);const w=c.clientWidth||800;c.width=w*dpr;c.height=h*dpr;c.style.height=h+"px";const x=c.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);return {x,w,h};}
+const GREENS=["#161B22","#0E4429","#006D32","#26A641","#39D353"];
+function drawGrid(m,cap){
+  const c=$("grid");const H=c.clientWidth<500?200:260;const {x,w,h}=fitCanvas(c,H);
+  const N=S.N;const cols=Math.ceil(Math.sqrt(N*w/h));const rows=Math.ceil(N/cols);
+  const cell=Math.min(w/cols,h/rows);const gap=cell>6?1.5:0.8;
+  x.fillStyle="#0A0D12";x.fillRect(0,0,w,h);
+  const offx=(w-cols*cell)/2, offy=(h-rows*cell)/2;
+  for(let i=0;i<N;i++){const v=S.spend[m*N+i];let col;
+    if(v>=cap)col="#A371F7";else col=GREENS[v<0.5?0:v<2?1:v<8?2:v<25?3:4];
+    x.fillStyle=col;const cx=offx+(i%cols)*cell, cy=offy+Math.floor(i/cols)*cell;
+    x.fillRect(cx+gap/2,cy+gap/2,cell-gap,cell-gap);}
+  $("monthTag").textContent="· month "+(m+1)+" of "+MONTHS;
+}
+function drawHist(R,upto){
+  const c=$("hist");const {x,w,h}=fitCanvas(c,c.clientWidth<500?190:240);
+  x.fillStyle="#0A0D12";x.fillRect(0,0,w,h);
+  const padL=8,padB=24,padT=12;const B=36;
+  const all=Array.from(S.raw).concat(Array.from(R.bill)).concat([S.p.budget]);
+  const lo=Math.min(...all)*0.95, hi=Math.max(...all)*1.03;
+  const bw=(w-padL*2)/B;const cnt=new Array(B).fill(0), cntRaw=new Array(B).fill(0);
+  const bin=v=>Math.max(0,Math.min(B-1,Math.floor((v-lo)/(hi-lo)*B)));
+  for(let m=0;m<upto;m++){cnt[bin(R.bill[m])]++;cntRaw[bin(S.raw[m])]++;}
+  const mx=Math.max(4,...cnt,...cntRaw);const sy=(h-padB-padT)/mx;
+  for(let b=0;b<B;b++){if(cnt[b]){x.fillStyle="#39D353";x.fillRect(padL+b*bw+1,h-padB-cnt[b]*sy,bw-2,cnt[b]*sy);}}
+  x.strokeStyle="#A371F7";x.lineWidth=2;
+  for(let b=0;b<B;b++){if(cntRaw[b])x.strokeRect(padL+b*bw+1.5,h-padB-cntRaw[b]*sy,bw-3,cntRaw[b]*sy);}
+  const bx=padL+(S.p.budget-lo)/(hi-lo)*(w-padL*2);
+  x.fillStyle="#E8643A";x.fillRect(bx-1.5,padT-4,3,h-padB-padT+4);
+  x.fillStyle="#E6EDF3";x.font="12px Inter, sans-serif";
+  x.textAlign="left";x.fillText(fmt$(lo),padL,h-7);x.textAlign="right";x.fillText(fmt$(hi),w-padL,h-7);
+  x.textAlign=bx>w-90?"right":"left";x.fillStyle="#FFB199";x.fillText(" budget "+fmt$(S.p.budget)+" ",bx,padT+8);
+}
+
+// ---- stickers, scan, memo ----
+function setSticker(id,val,pass){const el=$(id);el.querySelector(".val").textContent=val;const st=el.querySelector(".stamp");
+  if(st){st.textContent=pass?"✓":"✗";st.className="stamp "+(pass?"pass":"fail");st.setAttribute("aria-label",pass?"passes guardrail":"fails guardrail");}
+  if(!reduce){el.classList.remove("pop");void el.offsetWidth;el.classList.add("pop");}}
+function recommend(rows){
+  // cheapest default that keeps user-side guardrails green
+  const userOk=rows.filter(r=>r.g1&&r.g2&&r.g4);
+  if(!userOk.length)return {row:rows[rows.length-1],mode:"none"};
+  const r=userOk[0];return {row:r,mode:r.g3?"go":"budget"};
+}
+function renderScan(rows,pick){
+  let h="<thead><tr><th>cap</th><th>P90 bill</th><th>users capped</th><th>builders capped</th><th>P(over budget)</th></tr></thead><tbody>";
+  for(const r of rows){h+=`<tr class="${r.cap===pick.cap?"pick":""}"><td>$${r.cap}${r.cap===pick.cap?" ◀":""}</td><td>${fmt$(r.p90)}</td><td class="${r.g1?"ok":"bad"}">${pct(r.capRate)}</td><td class="${r.g2?"ok":"bad"}">${pct(r.bRate)}</td><td class="${r.g3?"ok":"bad"}">${pct(r.over)}</td></tr>`;}
+  $("scan").innerHTML=h+"</tbody>";
+}
+function renderMemo(R,rec,raw90){
+  const p=S.p, r=rec.row, cur=R;
+  const curOk=cur.g1&&cur.g2&&cur.g3&&cur.g4;
+  let dec, stampCls, vp;
+  if(rec.mode==="go"){dec=`Ship $${r.cap}/user/month as the default cap`;stampCls="go";
+    vp=`Default every newly opened workspace to a $${r.cap} monthly cap per user: in our simulation it keeps ${pct(1-r.capRate)} of users unblocked and the bill under budget ${pct(1-r.over)} of months.`;}
+  else if(rec.mode==="budget"){dec=`Ship $${r.cap} cap, and flag the budget as too tight`;stampCls="hold";
+    vp=`A $${r.cap} cap is the lowest default that doesn't block our best users, but at ${p.users.toLocaleString()} users this budget is exceeded ${pct(r.over)} of months, so we need a bigger budget or a rate limit, not a lower cap.`;}
+  else {dec="Hold: no single cap clears the user guardrails";stampCls="hold";
+    vp=`With ${p.power}% heavy builders, any one default cap either blocks too many builders or blows the budget, so I'd ship persona-based caps (a builder tier) instead of one number.`;}
+  const yours = curOk?`Your current slider ($${p.cap}) passes all four guardrails.`:
+    `Your current slider ($${p.cap}) misses: ${[!cur.g1&&"users capped "+pct(cur.capRate),!cur.g2&&"builders capped "+pct(cur.bRate),!cur.g3&&"over budget "+pct(cur.over)+" of months",!cur.g4&&"tickets "+cur.tickets.toFixed(1)+"/100 users"].filter(Boolean).join(", ")}.`;
+  $("memo").innerHTML=`
+  <span class="stamp-dec ${stampCls}">${dec}</span>
+  <dl>
+   <dt>Decision</dt><dd>${dec}. ${yours}</dd>
+   <dt>Evidence</dt><dd>${MONTHS} simulated months for ${p.users.toLocaleString()} users (seed ${p.seed}). With no cap, P90 bill is <b>${fmt$(raw90)}</b>. At $${r.cap}: P90 <b>${fmt$(r.p90)}</b>, median ${fmt$(r.p50)}, ${pct(r.capRate)} of user-months hit the cap (${pct(r.bRate)} for builders), and the bill tops the ${fmt$(p.budget)} budget in ${pct(r.over)} of months.</dd>
+   <dt>Risks</dt><dd>Builder usage is the tail that matters. If the true builder share is higher than ${p.power}%, capping jumps fast (try the slider). Price per token moves with model mix. A hard cap mid-task feels like an outage, so the block screen must route to "request more" in one click.</dd>
+   <dt>Plan</dt><dd>Week 1–2: ship the default to 10% of newly enabled workspaces behind a flag, log cap hits. Week 3: compare adoption (active AI users per entitled user) and cap-ticket rate against holdout workspaces. Go to 100% if cap-hits stay ≤ 3% and tickets ≤ 1 per 100 users.</dd>
+   <dt>Next step</dt><dd>Pull last quarter's real per-user spend, fit the three-persona mixture, and re-run this sweep before the default is locked.</dd>
+  </dl>
+  <div class="vp"><b>What I'd tell the VP in one sentence</b>${vp}</div>`;
+}
+
+// ---- main loop ----
+let anim=null;
+function params(){return {cap:+$("cap").value,users:+$("users").value,power:+$("power").value,price:+$("price").value,budget:+$("budget").value,seed:Math.max(1,Math.floor(+$("seed").value||1))};}
+function labels(){const p=params();$("capO").textContent="$"+p.cap;$("usersO").textContent=p.users.toLocaleString();$("powerO").textContent=p.power+"%";$("priceO").textContent="$"+p.price.toFixed(1);$("budgetO").textContent=fmt$(p.budget);}
+let simKey="";
+function run(animate){
+  labels();const p=params();
+  const key=[p.users,p.power,p.price,p.seed].join("|");
+  if(key!==simKey||!S){S=simulate(p);simKey=key;}S.p=p;
+  const R=evalCap(S,p.cap);
+  const rows=CAPS.map(c=>c===p.cap?R:evalCap(S,c));
+  const rec=recommend(rows);
+  const rawSorted=Array.from(S.raw).sort((a,b)=>a-b);const raw90=rawSorted[Math.floor(.9*MONTHS)];
+  setSticker("k1",fmt$(R.p90),true);
+  setSticker("k2",fmt$(R.avoided),true);
+  setSticker("k3",pct(R.capRate),R.g1);
+  setSticker("k4",pct(R.bRate),R.g2);
+  setSticker("k5",pct(R.over),R.g3);
+  renderScan(rows,rec.row);renderMemo(R,rec,raw90);
+  if(anim)cancelAnimationFrame(anim);
+  if(!animate||reduce){drawGrid(MONTHS-1,p.cap);drawHist(R,MONTHS);return;}
+  let m=0,last=0;
+  const step=t=>{if(t-last>16){m=Math.min(MONTHS,m+3);drawGrid(m-1,p.cap);drawHist(R,m);last=t;}if(m<MONTHS)anim=requestAnimationFrame(step);};
+  anim=requestAnimationFrame(step);
+}
+let deb=null;
+["cap","users","power","price","budget","seed"].forEach(id=>$(id).addEventListener("input",()=>{labels();clearTimeout(deb);deb=setTimeout(()=>run(false),120);}));
+$("run").addEventListener("click",()=>run(true));
+$("reseed").addEventListener("click",()=>{$("seed").value=1+Math.floor(Math.random()*99999);run(true);});
+let rz=null;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>run(false),150);});
+run(true);
+})();
+</script>
+</body>
+</html>
